@@ -74,14 +74,14 @@ config = load_config()
 
 # ================= API INITIALIZATION =================
 # Gemini AI
-GEMINI_API_KEY = "AIzaSyCVHQro93XsK6kEhyB0-FIYIW28ew3n50I"
+GEMINI_API_KEY = ""
 genai.configure(api_key=GEMINI_API_KEY)
 gemini_model = genai.GenerativeModel('gemini-pro')
 
 # Spotify
-SPOTIFY_CLIENT_ID = "4c7cf47a9eda4d4994626dbb8cfb2966"
-SPOTIFY_CLIENT_SECRET = "Yea42fb51d7dc4f6b89503eb846ec55ae"
-SPOTIFY_REDIRECT_URI = "http://localhost:8888/callback"
+SPOTIFY_CLIENT_ID = ""
+SPOTIFY_CLIENT_SECRET = ""
+SPOTIFY_REDIRECT_URI = ""
 sp_scope = "user-read-playback-state,user-modify-playback-state"
 
 # Wolfram Alpha
@@ -96,7 +96,7 @@ google_news = GNews(
 )
 
 # OpenWeatherMap
-WEATHER_API_KEY = "198b2d6c500c301f0f646e1ee78af63b"
+WEATHER_API_KEY = " "
 
 # Google Calendar
 SCOPES = ['https://www.googleapis.com/auth/calendar']
