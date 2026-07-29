@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>J.A.R.V.I.S.</title>
+<style>
+  :root{
+    --cyan:#3fd8ff; --cyan-dim:#1a7fa8; --gold:#ffb23e; --bg:#00060e;
+    --danger:#ff5b5b; --glow:0 0 12px var(--cyan);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%; overflow:hidden; background:var(--bg);
+    font-family:"Segoe UI",Consolas,"Courier New",monospace; color:var(--cyan);
+    user-select:none;}
+  #bg{position:fixed; inset:0; z-index:0;}
+  .frame{position:fixed; inset:0; z-index:2; pointer-events:none;}
+
+  /* corner brackets */
+  .bracket{position:absolute; width:70px; height:70px; border:2px solid var(--cyan);
+    opacity:.5; filter:drop-shadow(var(--glow));}
+  .bracket.tl{top:18px; left:18px; border-right:none; border-bottom:none;}
+  .bracket.tr{top:18px; right:18px; border-left:none; border-bottom:none;}
+  .bracket.bl{bottom:18px; left:18px; border-right:none; border-top:none;}
+  .bracket.br{bottom:18px; right:18px; border-left:none; border-top:none;}
+
+  /* telemetry readouts */
+  .readout{position:absolute; font-size:12px; letter-spacing:1px; line-height:1.7;
+    text-transform:uppercase; opacity:.85;}
+  .readout .k{color:var(--cyan-dim);}
+  .readout .v{color:var(--cyan); text-shadow:var(--glow);}
+  #topLeft{top:34px; left:44px;}
+  #topRight{top:34px; right:44px; text-align:right;}
+  #botLeft{bottom:120px; left:44px;}
+  #botRight{bottom:120px; right:44px; text-align:right; max-width:260px;}
+  .title{font-size:15px; color:var(--gold); text-shadow:0 0 10px var(--gold);
+    letter-spacing:4px; margin-bottom:6px;}
+  .cap{display:inline-block; padding:2px 8px; margin:2px; border:1px solid var(--cyan-dim);
+    border-radius:10px; font-size:10px;}
+  .cap.on{color:var(--cyan); border-color:var(--cyan); box-shadow:0 0 6px rgba(63,216,255,.4);}
+  .cap.off{color:#3a4a55; border-color:#243038;}
+
+  /* central reactor */
+  #stage{position:fixed; inset:0; z-index:1; display:flex; flex-direction:column;
+    align-items:center; justify-content:center;}
+  .reactor{position:relative; width:420px; height:420px; display:flex;
+    align-items:center; justify-content:center;}
+  #viz{position:absolute; inset:0;}
+  .ring{position:absolute; border-radius:50%; border:1px solid var(--cyan);
+    box-shadow:var(--glow), inset 0 0 12px rgba(63,216,255,.25); opacity:.7;}
+  .r1{width:300px; height:300px; border-style:solid; animation:spin 18s linear infinite;}
+  .r2{width:238px; height:238px; border-style:dashed; border-color:var(--cyan-dim);
+    animation:spin 12s linear infinite reverse;}
+  .r3{width:360px; height:360px; border-top-color:transparent; border-left-color:transparent;
+    animation:spin 26s linear infinite;}
+  .r4{width:180px; height:180px; border-style:dotted; animation:spin 9s linear infinite;}
+  .core{position:relative; width:120px; height:120px; border-radius:50%;
+    background:radial-gradient(circle at 50% 45%, #eafcff 0%, var(--cyan) 35%, var(--cyan-dim) 70%, #003043 100%);
+    box-shadow:0 0 40px var(--cyan), 0 0 90px rgba(63,216,255,.6), inset 0 0 30px #bff6ff;
+    animation:pulse 3s ease-in-out infinite; z-index:2;}
+  .core::after{content:""; position:absolute; inset:26px; border-radius:50%;
+    background:radial-gradient(circle,#ffffff,#d5f7ff 60%,transparent 75%); opacity:.9;}
+  .status{margin-top:38px; font-size:16px; letter-spacing:6px; text-transform:uppercase;
+    color:var(--cyan); text-shadow:var(--glow); min-height:22px;}
+  .listening .core{animation:pulse 1s ease-in-out infinite;
+    background:radial-gradient(circle at 50% 45%,#eafffb 0%,#3fffd8 35%,#12907a 70%,#003a30 100%);
+    box-shadow:0 0 50px #3fffd8,0 0 100px rgba(63,255,216,.6),inset 0 0 30px #bfffee;}
+  .speaking .core{animation:pulse .55s ease-in-out infinite;
+    background:radial-gradient(circle at 50% 45%,#fff6e6 0%,var(--gold) 35%,#a86a10 70%,#3a2600 100%);
+    box-shadow:0 0 50px var(--gold),0 0 110px rgba(255,178,62,.6),inset 0 0 30px #ffe6b0;}
+
+  @keyframes spin{to{transform:rotate(360deg);}}
+  @keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.06);}}
+
+  /* conversation log */
+  #log{position:fixed; z-index:3; left:50%; transform:translateX(-50%);
+    bottom:170px; width:min(720px,86vw); max-height:26vh; overflow-y:auto;
+    padding:6px 10px; display:flex; flex-direction:column; gap:8px;
+    pointer-events:auto; scrollbar-width:thin;}
+  #log::-webkit-scrollbar{width:5px;} #log::-webkit-scrollbar-thumb{background:var(--cyan-dim);}
+  .msg{max-width:80%; padding:8px 14px; font-size:14px; line-height:1.5;
+    border-radius:12px; backdrop-filter:blur(3px); animation:fade .4s ease;}
+  .msg.j{align-self:flex-start; background:rgba(10,40,60,.55); border:1px solid var(--cyan-dim);
+    color:#dff6ff; border-left:3px solid var(--cyan);}
+  .msg.u{align-self:flex-end; background:rgba(60,40,5,.5); border:1px solid #6b4d12;
+    color:#ffe9c2; border-right:3px solid var(--gold);}
+  @keyframes fade{from{opacity:0; transform:translateY(8px);}to{opacity:1;}}
+
+  /* control bar */
+  #bar{position:fixed; z-index:4; left:50%; transform:translateX(-50%); bottom:44px;
+    display:flex; gap:12px; align-items:center; pointer-events:auto;
+    width:min(720px,86vw);}
+  #input{flex:1; background:rgba(4,18,28,.85); border:1px solid var(--cyan-dim);
+    border-radius:26px; padding:14px 20px; color:var(--cyan); font-size:15px;
+    outline:none; box-shadow:inset 0 0 14px rgba(63,216,255,.12);}
+  #input::placeholder{color:#3a5a68;}
+  #input:focus{border-color:var(--cyan); box-shadow:inset 0 0 14px rgba(63,216,255,.3),0 0 10px rgba(63,216,255,.3);}
+  .btn{width:52px; height:52px; border-radius:50%; border:1px solid var(--cyan);
+    background:rgba(6,28,40,.9); color:var(--cyan); font-size:20px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; transition:.2s;
+    box-shadow:0 0 10px rgba(63,216,255,.3);}
+  .btn:hover{background:var(--cyan); color:#00131c; box-shadow:0 0 20px var(--cyan);}
+  #mic.rec{background:var(--danger); border-color:var(--danger); color:#fff;
+    box-shadow:0 0 22px var(--danger); animation:pulse 1s infinite;}
+  .hint{position:fixed; z-index:4; bottom:16px; left:50%; transform:translateX(-50%);
+    font-size:11px; color:#2f4a58; letter-spacing:1px;}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+
+<div class="frame">
+  <div class="bracket tl"></div><div class="bracket tr"></div>
+  <div class="bracket bl"></div><div class="bracket br"></div>
+</div>
+
+<div class="readout" id="topLeft">
+  <div class="title">J.A.R.V.I.S.</div>
+  <div><span class="k">System</span> · <span class="v" id="sysState">ONLINE</span></div>
+  <div><span class="k">Mode</span> · <span class="v" id="modeState">STANDBY</span></div>
+</div>
+
+<div class="readout" id="topRight">
+  <div class="v" id="clock" style="font-size:22px;">--:--:--</div>
+  <div class="k" id="dateline">----</div>
+</div>
+
+<div class="readout" id="botLeft">
+  <div><span class="k">Core</span> <span class="v" id="tCore">98.4%</span></div>
+  <div><span class="k">Flux</span> <span class="v" id="tFlux">1.21 GW</span></div>
+  <div><span class="k">Uplink</span> <span class="v" id="tLink">SECURE</span></div>
+</div>
+
+<div class="readout" id="botRight">
+  <div class="k" style="margin-bottom:4px;">Subsystems</div>
+  <div id="caps"></div>
+</div>
+
+<div id="stage">
+  <div class="reactor" id="reactor">
+    <canvas id="viz" width="420" height="420"></canvas>
+    <div class="ring r3"></div>
+    <div class="ring r1"></div>
+    <div class="ring r2"></div>
+    <div class="ring r4"></div>
+    <div class="core"></div>
+  </div>
+  <div class="status" id="status">INITIALIZING</div>
+</div>
+
+<div id="log"></div>
+
+<div id="bar">
+  <input id="input" type="text" placeholder="Speak or type a command…  (try &quot;briefing&quot;, &quot;weather in Tokyo&quot;, &quot;help&quot;)" autocomplete="off">
+  <button class="btn" id="send" title="Send">➤</button>
+  <button class="btn" id="mic" title="Voice">🎙</button>
+</div>
+<div class="hint">Click 🎙 and speak · voice runs in your browser · say “help” for commands</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const reactor = $('#reactor'), statusEl = $('#status'), logEl = $('#log');
+let assistantName = "Jarvis";
+
+/* ---------- particle background ---------- */
+const bg = $('#bg'), bx = bg.getContext('2d');
+let parts = [];
+function sizeBg(){ bg.width = innerWidth; bg.height = innerHeight; }
+sizeBg(); addEventListener('resize', sizeBg);
+for(let i=0;i<90;i++) parts.push({
+  x:Math.random()*innerWidth, y:Math.random()*innerHeight,
+  r:Math.random()*1.6+.3, s:Math.random()*.25+.05, a:Math.random()*.5+.15});
+function drawBg(){
+  bx.clearRect(0,0,bg.width,bg.height);
+  // faint grid
+  bx.strokeStyle='rgba(63,216,255,.04)'; bx.lineWidth=1;
+  for(let x=0;x<bg.width;x+=60){bx.beginPath();bx.moveTo(x,0);bx.lineTo(x,bg.height);bx.stroke();}
+  for(let y=0;y<bg.height;y+=60){bx.beginPath();bx.moveTo(0,y);bx.lineTo(bg.width,y);bx.stroke();}
+  for(const p of parts){
+    p.y-=p.s; if(p.y<0){p.y=bg.height; p.x=Math.random()*bg.width;}
+    bx.beginPath(); bx.arc(p.x,p.y,p.r,0,7); bx.fillStyle=`rgba(63,216,255,${p.a})`; bx.fill();
+  }
+  requestAnimationFrame(drawBg);
+}
+drawBg();
+
+/* ---------- radial visualizer ---------- */
+const viz = $('#viz'), vx = viz.getContext('2d');
+const BARS = 84; let amp = new Array(BARS).fill(0); let vState='idle';
+function drawViz(){
+  vx.clearRect(0,0,420,420);
+  const cx=210, cy=210, base=136;
+  for(let i=0;i<BARS;i++){
+    let target = vState==='idle' ? 6+Math.sin(Date.now()/400+i)*3
+      : vState==='listening' ? 8+Math.random()*22
+      : 10+Math.random()*46;                       // speaking
+    amp[i] += (target-amp[i])*0.25;
+    const ang = (i/BARS)*Math.PI*2;
+    const x1=cx+Math.cos(ang)*base, y1=cy+Math.sin(ang)*base;
+    const x2=cx+Math.cos(ang)*(base+amp[i]), y2=cy+Math.sin(ang)*(base+amp[i]);
+    const col = vState==='speaking' ? '255,178,62' : vState==='listening' ? '63,255,216' : '63,216,255';
+    vx.strokeStyle=`rgba(${col},.85)`; vx.lineWidth=2.4; vx.lineCap='round';
+    vx.beginPath(); vx.moveTo(x1,y1); vx.lineTo(x2,y2); vx.stroke();
+  }
+  requestAnimationFrame(drawViz);
+}
+drawViz();
+
+/* ---------- state ---------- */
+function setState(s, label){
+  reactor.parentElement.classList.remove('listening','speaking');
+  vState = s;
+  if(s==='listening'){ reactor.parentElement.classList.add('listening'); $('#modeState').textContent='LISTENING'; }
+  else if(s==='speaking'){ reactor.parentElement.classList.add('speaking'); $('#modeState').textContent='SPEAKING'; }
+  else { $('#modeState').textContent = s==='processing' ? 'PROCESSING' : 'STANDBY'; }
+  statusEl.textContent = label || s.toUpperCase();
+}
+
+/* ---------- log ---------- */
+function addMsg(text, who){
+  const d=document.createElement('div');
+  d.className='msg '+(who==='user'?'u':'j');
+  d.textContent=(who==='user'?'':assistantName+' · ')+text;
+  logEl.appendChild(d); logEl.scrollTop=logEl.scrollHeight;
+  while(logEl.children.length>30) logEl.removeChild(logEl.firstChild);
+}
+
+/* ---------- speech synthesis ---------- */
+let voice=null;
+function pickVoice(){
+  const vs=speechSynthesis.getVoices();
+  voice = vs.find(v=>/uk english male|daniel|arthur|george/i.test(v.name))
+       || vs.find(v=>v.lang==='en-GB')
+       || vs.find(v=>/male/i.test(v.name))
+       || vs.find(v=>v.lang && v.lang.startsWith('en')) || vs[0];
+}
+speechSynthesis.onvoiceschanged=pickVoice; pickVoice();
+
+function say(text){
+  return new Promise(res=>{
+    if(!('speechSynthesis' in window)) return res();
+    const u=new SpeechSynthesisUtterance(text);
+    if(voice) u.voice=voice;
+    u.rate=1.02; u.pitch=.9;
+    u.onend=res; u.onerror=res;
+    speechSynthesis.speak(u);
+  });
+}
+
+/* ---------- send a command ---------- */
+let busy=false;
+async function send(query){
+  query=(query||'').trim(); if(!query||busy) return;
+  busy=true; addMsg(query,'user'); $('#input').value='';
+  setState('processing','PROCESSING');
+  try{
+    const r=await fetch('/api/command',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({query})});
+    const data=await r.json();
+    for(const line of (data.responses||[])){
+      addMsg(line,'jarvis');
+      setState('speaking', line.length>60 ? 'SPEAKING' : line.toUpperCase().slice(0,26));
+      await say(line);
+    }
+    if(data.keep_open===false){ setState('idle','OFFLINE'); $('#sysState').textContent='OFFLINE'; }
+  }catch(e){ addMsg('Connection to core lost.','jarvis'); }
+  setState('idle','STANDBY'); busy=false; $('#input').focus();
+}
+
+/* ---------- voice recognition (browser) ---------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec=null, recognizing=false;
+if(SR){
+  rec=new SR(); rec.lang='en-US'; rec.interimResults=false; rec.maxAlternatives=1;
+  rec.onstart=()=>{recognizing=true; $('#mic').classList.add('rec'); setState('listening','LISTENING');};
+  rec.onend=()=>{recognizing=false; $('#mic').classList.remove('rec'); if(!busy) setState('idle','STANDBY');};
+  rec.onerror=()=>{recognizing=false; $('#mic').classList.remove('rec');};
+  rec.onresult=e=>{ const t=e.results[0][0].transcript; send(t); };
+}
+$('#mic').onclick=()=>{
+  if(!SR){ addMsg('Voice input needs Chrome or Edge. You can still type.','jarvis'); return; }
+  if(recognizing){ rec.stop(); } else { try{ speechSynthesis.cancel(); rec.start(); }catch(_){} }
+};
+
+/* ---------- input wiring ---------- */
+$('#send').onclick=()=>send($('#input').value);
+$('#input').addEventListener('keydown',e=>{ if(e.key==='Enter') send($('#input').value); });
+
+/* ---------- clock + telemetry ---------- */
+function tick(){
+  const now=new Date();
+  $('#clock').textContent=now.toLocaleTimeString();
+  $('#dateline').textContent=now.toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'});
+  $('#tCore').textContent=(96+Math.random()*3.5).toFixed(1)+'%';
+}
+setInterval(tick,1000); tick();
+
+/* ---------- capabilities ---------- */
+fetch('/api/capabilities').then(r=>r.json()).then(c=>{
+  assistantName=c.assistant_name||'Jarvis';
+  const labels={gemini:'AI Brain',weather:'Weather',wikipedia:'Wikipedia',
+    speech_recognition:'Mic',text_to_speech:'Voice',spotify:'Spotify',
+    calendar:'Calendar',psutil:'Telemetry'};
+  const box=$('#caps'); box.innerHTML='';
+  for(const k in labels){
+    const s=document.createElement('span');
+    s.className='cap '+(c[k]?'on':'off'); s.textContent=labels[k];
+    box.appendChild(s);
+  }
+}).catch(()=>{});
+
+/* ---------- poll proactive events (reminders / alarms) ---------- */
+setInterval(async()=>{
+  try{
+    const r=await fetch('/api/events'); const d=await r.json();
+    for(const ev of (d.events||[])){ addMsg(ev.text,'jarvis'); if(!busy) say(ev.text); }
+  }catch(_){}
+},4000);
+
+/* ---------- boot ---------- */
+setTimeout(()=>{ setState('idle','STANDBY'); $('#input').focus(); }, 1200);
+</script>
+</body>
+</html>

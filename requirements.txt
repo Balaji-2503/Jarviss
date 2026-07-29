@@ -1,0 +1,30 @@
+# ---- Core (recommended) ----
+python-dotenv          # load API keys from a .env file
+requests               # weather, news, dictionary, currency, IP lookups
+google-generativeai    # Gemini AI "brain" (conversation + fallback answers)
+
+# ---- Voice (optional: needed for microphone + spoken replies) ----
+SpeechRecognition      # microphone input
+pyttsx3                # offline text-to-speech
+# PyAudio              # required by SpeechRecognition for mic access
+#                      # Windows: pip install pipwin && pipwin install pyaudio
+#                      # macOS:   brew install portaudio && pip install pyaudio
+#                      # Linux:   sudo apt install portaudio19-dev && pip install pyaudio
+
+# ---- Extra features (optional) ----
+wikipedia              # Wikipedia summaries
+psutil                 # system stats (CPU / memory / battery)
+pyautogui              # screenshots + media-key volume control
+pywhatkit              # play songs on YouTube + send WhatsApp messages
+pyjokes                # offline jokes
+wolframalpha           # advanced calculations (needs WOLFRAM_APP_ID)
+pyperclip              # clipboard read/copy
+spotipy                # play music on Spotify (needs Spotify keys)
+google-api-python-client  # Google Calendar
+google-auth-oauthlib      # Google Calendar auth
+
+# ---- The web HUD (server.py) needs NO extra packages ----
+# It uses Python's standard library and runs voice in the browser.
+
+# ---- Development ----
+# pytest               # run the test suite:  pytest -q
