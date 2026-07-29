@@ -17,12 +17,39 @@ instead of crashing.
 | **Conversation** | Ask anything — powered by Google Gemini, with memory of the chat |
 | **Apps & Web** | `open youtube`, `open notepad`, `open github.com` |
 | **Info** | `what time is it`, `date`, `weather in London`, `news`, `define serendipity`, `wikipedia python` |
-| **Productivity** | `todo add buy milk`, `todo list`, `complete task 1`, `remind me to call mom in 30 minutes`, `set timer for 60 seconds`, `take a note ...` |
+| **Productivity** | `todo add buy milk`, `todo list`, `complete task 1`, `remind me to call mom in 30 minutes`, `set timer for 60 seconds`, `set an alarm for 7:30 am`, `take a note ...` |
+| **Daily briefing** | `briefing` / `good morning` — time, weather, agenda, tasks & headlines in one go |
 | **System** | `system stats`, `volume up/down/mute`, `lock`, `sleep`, `shutdown`, `restart`, `screenshot` |
 | **Math & Convert** | `calculate 15 times 12`, `convert 10 usd to eur` |
-| **Media** | `play <song>` (YouTube) |
+| **Media** | `play <song>` (YouTube), `play <song> on spotify` |
+| **Comms** | `send email`, `send a whatsapp`, `my calendar` / `upcoming events` |
+| **Language** | `translate good morning to French` |
+| **Clipboard** | `copy <text> to clipboard`, `read clipboard` |
 | **Fun & Utils** | `joke`, `flip a coin`, `roll a dice`, `random number`, `generate a password`, `my ip` |
 | **Meta** | `help`, `exit` |
+
+---
+
+## 🦾 The J.A.R.V.I.S. HUD (Iron Man style web UI)
+
+A movie-inspired heads-up display: a glowing **arc-reactor** core with rotating
+HUD rings, a **radial voice visualizer** that reacts as JARVIS listens and speaks,
+live telemetry readouts, a subsystem status panel, and a particle field — all in
+your browser.
+
+```bash
+python server.py          # opens http://localhost:5000 automatically
+```
+
+- **Talk to it** — click the 🎙 button and speak (voice recognition + speech run
+  in the browser via the Web Speech API, so **no microphone drivers or PyAudio
+  needed**). Works best in Chrome or Edge.
+- **Or type** — a command bar is always there.
+- Reminders and alarms pop up on the HUD in real time.
+- The whole backend uses only Python's standard library — **no Flask required.**
+
+> The reactor glows **cyan** when idle, **teal** while listening, and **gold**
+> while JARVIS is speaking.
 
 ---
 
@@ -80,11 +107,29 @@ No microphone? No problem — JARVIS automatically falls back to text mode.
 ## 🗂️ Project layout
 
 ```
-jarvis.py          # the entire assistant (single file, well-sectioned)
+jarvis.py          # the assistant core + CLI (voice/text, all features)
+server.py          # stdlib web server that bridges the browser to the core
+web/index.html     # the Iron Man style HUD (self-contained HTML/CSS/JS)
+tests/             # offline pytest suite (no mic, network, or keys needed)
 requirements.txt   # optional dependencies with install notes
 .env.example       # template for API keys
 .gitignore         # keeps secrets & runtime files out of git
 ```
+
+Two ways to run JARVIS:
+
+- **`python server.py`** → the browser HUD (recommended; best voice experience).
+- **`python jarvis.py`** → the classic terminal/desktop app (voice or text).
+
+## 🧪 Tests
+
+```bash
+pip install pytest
+pytest -q
+```
+
+The suite runs fully offline by driving `jarvis.process_command()`, which
+captures spoken output as text instead of playing audio.
 
 ---
 
