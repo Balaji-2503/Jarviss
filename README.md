@@ -38,15 +38,20 @@ live telemetry readouts, a subsystem status panel, and a particle field — all 
 your browser.
 
 ```bash
-python server.py          # opens http://localhost:5000 automatically
+python jarvis.py          # opens http://localhost:5000 automatically
 ```
+
+> **Using PyCharm?** Just open `jarvis.py` and click **Run ▶** — that's it. The
+> HUD launches in your browser. Everything (assistant, web server, and the HUD
+> page itself) lives in this one file.
 
 - **Talk to it** — click the 🎙 button and speak (voice recognition + speech run
   in the browser via the Web Speech API, so **no microphone drivers or PyAudio
   needed**). Works best in Chrome or Edge.
 - **Or type** — a command bar is always there.
 - Reminders and alarms pop up on the HUD in real time.
-- The whole backend uses only Python's standard library — **no Flask required.**
+- It's **all one file** (`jarvis.py`) — the assistant, a tiny stdlib web server,
+  and the HUD page itself. **No Flask, no separate front-end, nothing to build.**
 
 > The reactor glows **cyan** when idle, **teal** while listening, and **gold**
 > while JARVIS is speaking.
@@ -55,19 +60,22 @@ python server.py          # opens http://localhost:5000 automatically
 
 ## 🚀 Quick start
 
+Everything is in **one file** — `jarvis.py`. In PyCharm, just open it and hit **Run ▶**.
+
 ```bash
-# 1. Install dependencies (install only what you need — all are optional)
+# 1. (Optional) install extras — everything is optional; JARVIS runs without them
 pip install -r requirements.txt
 
-# 2. Add your API keys (optional but recommended for full power)
-cp .env.example .env
-#   then edit .env and paste in your keys
+# 2. (Optional) add your API keys for full power
+cp .env.example .env        # then edit .env and paste in your keys
 
 # 3. Run it
-python jarvis.py            # auto: voice if a mic is available, else text
-python jarvis.py --text     # force text mode (no microphone needed)
-python jarvis.py --voice    # force voice mode
-python jarvis.py --no-gui   # run without the small status window
+python jarvis.py            # launches the Iron Man HUD in your browser (default)
+python jarvis.py --cli      # classic terminal assistant (voice if mic, else text)
+python jarvis.py --text     # terminal, force text mode
+python jarvis.py --voice    # terminal, force voice mode
+python jarvis.py --port 8080          # HUD on a different port
+python jarvis.py --no-browser         # HUD without auto-opening a tab
 ```
 
 On launch, JARVIS prints a **capability check** showing exactly which features are
@@ -107,19 +115,17 @@ No microphone? No problem — JARVIS automatically falls back to text mode.
 ## 🗂️ Project layout
 
 ```
-jarvis.py          # the assistant core + CLI (voice/text, all features)
-server.py          # stdlib web server that bridges the browser to the core
-web/index.html     # the Iron Man style HUD (self-contained HTML/CSS/JS)
+jarvis.py          # EVERYTHING — assistant, web server, and the HUD page (one file)
 tests/             # offline pytest suite (no mic, network, or keys needed)
 requirements.txt   # optional dependencies with install notes
 .env.example       # template for API keys
 .gitignore         # keeps secrets & runtime files out of git
 ```
 
-Two ways to run JARVIS:
+Two ways to run the single file:
 
-- **`python server.py`** → the browser HUD (recommended; best voice experience).
-- **`python jarvis.py`** → the classic terminal/desktop app (voice or text).
+- **`python jarvis.py`** → the Iron Man browser HUD (default; best voice experience).
+- **`python jarvis.py --cli`** → the classic terminal/desktop app (voice or text).
 
 ## 🧪 Tests
 
