@@ -1194,9 +1194,13 @@ def handle(query, listener):
         todo_done(idx); return True
     if q.startswith("remind me"):
         try:
-            text = q.split("to", 1)[1].split("in")[0].strip()
-            minutes = _extract_number(q.split("in", 1)[1], 5)
-            add_reminder(text, minutes)
+            body = q.split("to", 1)[1] if "to" in q else q
+            if " in " in body:
+                text, after = body.rsplit(" in ", 1)  # rsplit avoids "drink"/"in" clash
+                minutes = _extract_number(after, 5)
+            else:
+                text, minutes = body, 5
+            add_reminder(text.strip(), minutes)
         except Exception:
             speak("Try: remind me to call mom in 30 minutes.")
         return True
