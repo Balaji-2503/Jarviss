@@ -1,0 +1,440 @@
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>J.A.R.V.I.S.</title>
+<style>
+  :root{
+    --cyan:#3fd8ff; --cyan-dim:#1a7fa8; --gold:#ffb23e; --bg:#00060e;
+    --danger:#ff5b5b; --glow:0 0 12px var(--cyan);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%; overflow:hidden; background:var(--bg);
+    font-family:"Segoe UI",Consolas,"Courier New",monospace; color:var(--cyan);
+    -webkit-user-select:none; user-select:none;}
+  #bg{position:fixed; inset:0; z-index:0;}
+  .frame{position:fixed; inset:0; z-index:2; pointer-events:none;}
+  .bracket{position:absolute; width:70px; height:70px; border:2px solid var(--cyan);
+    opacity:.5; filter:drop-shadow(var(--glow));}
+  .bracket.tl{top:18px; left:18px; border-right:none; border-bottom:none;}
+  .bracket.tr{top:18px; right:18px; border-left:none; border-bottom:none;}
+  .bracket.bl{bottom:18px; left:18px; border-right:none; border-top:none;}
+  .bracket.br{bottom:18px; right:18px; border-left:none; border-top:none;}
+  .readout{position:absolute; font-size:12px; letter-spacing:1px; line-height:1.7;
+    text-transform:uppercase; opacity:.85;}
+  .readout .k{color:var(--cyan-dim);}
+  .readout .v{color:var(--cyan); text-shadow:var(--glow);}
+  #topLeft{top:34px; left:44px;}
+  #topRight{top:34px; right:44px; text-align:right;}
+  #botLeft{bottom:120px; left:44px;}
+  #botRight{bottom:120px; right:44px; text-align:right; max-width:260px;}
+  .title{font-size:15px; color:var(--gold); text-shadow:0 0 10px var(--gold);
+    letter-spacing:4px; margin-bottom:6px;}
+  .cap{display:inline-block; padding:2px 8px; margin:2px; border:1px solid var(--cyan-dim);
+    border-radius:10px; font-size:10px;}
+  .cap.on{color:var(--cyan); border-color:var(--cyan); box-shadow:0 0 6px rgba(63,216,255,.4);}
+  .cap.off{color:#3a4a55; border-color:#243038;}
+  #stage{position:fixed; inset:0; z-index:1; display:flex; flex-direction:column;
+    align-items:center; justify-content:center;}
+  .reactor{position:relative; width:420px; height:420px; display:flex;
+    align-items:center; justify-content:center; max-width:86vw;}
+  #viz{position:absolute; inset:0; width:100%; height:100%;}
+  .ring{position:absolute; border-radius:50%; border:1px solid var(--cyan);
+    box-shadow:var(--glow), inset 0 0 12px rgba(63,216,255,.25); opacity:.7;}
+  .r1{width:300px; height:300px; border-style:solid; animation:spin 18s linear infinite;}
+  .r2{width:238px; height:238px; border-style:dashed; border-color:var(--cyan-dim);
+    animation:spin 12s linear infinite reverse;}
+  .r3{width:360px; height:360px; border-top-color:transparent; border-left-color:transparent;
+    animation:spin 26s linear infinite;}
+  .r4{width:180px; height:180px; border-style:dotted; animation:spin 9s linear infinite;}
+  .core{position:relative; width:120px; height:120px; border-radius:50%;
+    background:radial-gradient(circle at 50% 45%, #eafcff 0%, var(--cyan) 35%, var(--cyan-dim) 70%, #003043 100%);
+    box-shadow:0 0 40px var(--cyan), 0 0 90px rgba(63,216,255,.6), inset 0 0 30px #bff6ff;
+    animation:pulse 3s ease-in-out infinite; z-index:2;}
+  .core::after{content:""; position:absolute; inset:26px; border-radius:50%;
+    background:radial-gradient(circle,#ffffff,#d5f7ff 60%,transparent 75%); opacity:.9;}
+  .status{margin-top:38px; font-size:16px; letter-spacing:6px; text-transform:uppercase;
+    color:var(--cyan); text-shadow:var(--glow); min-height:22px; text-align:center; padding:0 12px;}
+  .listening .core{animation:pulse 1s ease-in-out infinite;
+    background:radial-gradient(circle at 50% 45%,#eafffb 0%,#3fffd8 35%,#12907a 70%,#003a30 100%);
+    box-shadow:0 0 50px #3fffd8,0 0 100px rgba(63,255,216,.6),inset 0 0 30px #bfffee;}
+  .speaking .core{animation:pulse .55s ease-in-out infinite;
+    background:radial-gradient(circle at 50% 45%,#fff6e6 0%,var(--gold) 35%,#a86a10 70%,#3a2600 100%);
+    box-shadow:0 0 50px var(--gold),0 0 110px rgba(255,178,62,.6),inset 0 0 30px #ffe6b0;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  @keyframes pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.06);}}
+  @media (prefers-reduced-motion: reduce){ .ring,.core{animation:none!important;} }
+  #log{position:fixed; z-index:3; left:50%; transform:translateX(-50%);
+    bottom:170px; width:min(720px,86vw); max-height:26vh; overflow-y:auto;
+    padding:6px 10px; display:flex; flex-direction:column; gap:8px;
+    pointer-events:auto; scrollbar-width:thin;}
+  #log::-webkit-scrollbar{width:5px;} #log::-webkit-scrollbar-thumb{background:var(--cyan-dim);}
+  .msg{max-width:80%; padding:8px 14px; font-size:14px; line-height:1.5;
+    border-radius:12px; -webkit-backdrop-filter:blur(3px); backdrop-filter:blur(3px); animation:fade .4s ease;}
+  .msg.j{align-self:flex-start; background:rgba(10,40,60,.6); border:1px solid var(--cyan-dim);
+    color:#dff6ff; border-left:3px solid var(--cyan);}
+  .msg.u{align-self:flex-end; background:rgba(60,40,5,.55); border:1px solid #6b4d12;
+    color:#ffe9c2; border-right:3px solid var(--gold);}
+  @keyframes fade{from{opacity:0; transform:translateY(8px);}to{opacity:1;}}
+  #bar{position:fixed; z-index:4; left:50%; transform:translateX(-50%); bottom:44px;
+    display:flex; gap:12px; align-items:center; pointer-events:auto; width:min(720px,86vw);}
+  #input{flex:1; min-width:0; background:rgba(4,18,28,.85); border:1px solid var(--cyan-dim);
+    border-radius:26px; padding:14px 20px; color:var(--cyan); font-size:15px;
+    outline:none; box-shadow:inset 0 0 14px rgba(63,216,255,.12);}
+  #input::placeholder{color:#3a5a68;}
+  #input:focus{border-color:var(--cyan); box-shadow:inset 0 0 14px rgba(63,216,255,.3),0 0 10px rgba(63,216,255,.3);}
+  .btn{width:52px; height:52px; flex:0 0 auto; border-radius:50%; border:1px solid var(--cyan);
+    background:rgba(6,28,40,.9); color:var(--cyan); font-size:20px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; transition:.2s;
+    box-shadow:0 0 10px rgba(63,216,255,.3);}
+  .btn:hover{background:var(--cyan); color:#00131c; box-shadow:0 0 20px var(--cyan);}
+  .btn:focus-visible{outline:2px solid var(--gold); outline-offset:2px;}
+  #mic.rec{background:var(--danger); border-color:var(--danger); color:#fff;
+    box-shadow:0 0 22px var(--danger); animation:pulse 1s infinite;}
+  .hint{position:fixed; z-index:4; bottom:16px; left:50%; transform:translateX(-50%);
+    font-size:11px; color:#2f4a58; letter-spacing:1px; text-align:center; width:90vw;}
+</style>
+
+<canvas id="bg"></canvas>
+<div class="frame">
+  <div class="bracket tl"></div><div class="bracket tr"></div>
+  <div class="bracket bl"></div><div class="bracket br"></div>
+</div>
+<div class="readout" id="topLeft">
+  <div class="title">J.A.R.V.I.S.</div>
+  <div><span class="k">System</span> &middot; <span class="v" id="sysState">ONLINE</span></div>
+  <div><span class="k">Mode</span> &middot; <span class="v" id="modeState">STANDBY</span></div>
+</div>
+<div class="readout" id="topRight">
+  <div class="v" id="clock" style="font-size:22px;">--:--:--</div>
+  <div class="k" id="dateline">----</div>
+</div>
+<div class="readout" id="botLeft">
+  <div><span class="k">Core</span> <span class="v" id="tCore">98.4%</span></div>
+  <div><span class="k">Flux</span> <span class="v" id="tFlux">1.21 GW</span></div>
+  <div><span class="k">Uplink</span> <span class="v" id="tLink">SECURE</span></div>
+</div>
+<div class="readout" id="botRight">
+  <div class="k" style="margin-bottom:4px;">Subsystems</div>
+  <div id="caps"></div>
+</div>
+<div id="stage">
+  <div class="reactor" id="reactor">
+    <canvas id="viz" width="420" height="420"></canvas>
+    <div class="ring r3"></div><div class="ring r1"></div>
+    <div class="ring r2"></div><div class="ring r4"></div>
+    <div class="core"></div>
+  </div>
+  <div class="status" id="status">INITIALIZING</div>
+</div>
+<div id="log"></div>
+<div id="bar">
+  <input id="input" type="text" aria-label="Command input" placeholder="Speak or type a command&hellip;  (try &quot;briefing&quot;, &quot;roll a dice&quot;, &quot;help&quot;)" autocomplete="off">
+  <button class="btn" id="send" title="Send" aria-label="Send">&#10148;</button>
+  <button class="btn" id="mic" title="Voice" aria-label="Voice">&#127908;</button>
+</div>
+<div class="hint">Click the mic and speak &middot; voice runs in your browser &middot; say &ldquo;help&rdquo; for commands</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const reactor = $('#reactor'), statusEl = $('#status'), logEl = $('#log');
+const NAME = "Jarvis", TITLE = "Sir";
+
+/* ---------------- particle background ---------------- */
+const bg = $('#bg'), bx = bg.getContext('2d');
+let parts = [];
+function sizeBg(){ bg.width = innerWidth; bg.height = innerHeight; }
+sizeBg(); addEventListener('resize', sizeBg);
+for(let i=0;i<90;i++) parts.push({x:Math.random()*innerWidth, y:Math.random()*innerHeight,
+  r:Math.random()*1.6+.3, s:Math.random()*.25+.05, a:Math.random()*.5+.15});
+function drawBg(){
+  bx.clearRect(0,0,bg.width,bg.height);
+  bx.strokeStyle='rgba(63,216,255,.04)'; bx.lineWidth=1;
+  for(let x=0;x<bg.width;x+=60){bx.beginPath();bx.moveTo(x,0);bx.lineTo(x,bg.height);bx.stroke();}
+  for(let y=0;y<bg.height;y+=60){bx.beginPath();bx.moveTo(0,y);bx.lineTo(bg.width,y);bx.stroke();}
+  for(const p of parts){ p.y-=p.s; if(p.y<0){p.y=bg.height; p.x=Math.random()*bg.width;}
+    bx.beginPath(); bx.arc(p.x,p.y,p.r,0,7); bx.fillStyle='rgba(63,216,255,'+p.a+')'; bx.fill(); }
+  requestAnimationFrame(drawBg);
+}
+drawBg();
+
+/* ---------------- radial visualizer ---------------- */
+const viz = $('#viz'), vx = viz.getContext('2d');
+const BARS = 84; let amp = new Array(BARS).fill(0); let vState='idle';
+function drawViz(){
+  vx.clearRect(0,0,420,420);
+  const cx=210, cy=210, base=136;
+  for(let i=0;i<BARS;i++){
+    let target = vState==='idle' ? 6+Math.sin(Date.now()/400+i)*3
+      : vState==='listening' ? 8+Math.random()*22 : 10+Math.random()*46;
+    amp[i] += (target-amp[i])*0.25;
+    const ang = (i/BARS)*Math.PI*2;
+    const x1=cx+Math.cos(ang)*base, y1=cy+Math.sin(ang)*base;
+    const x2=cx+Math.cos(ang)*(base+amp[i]), y2=cy+Math.sin(ang)*(base+amp[i]);
+    const col = vState==='speaking' ? '255,178,62' : vState==='listening' ? '63,255,216' : '63,216,255';
+    vx.strokeStyle='rgba('+col+',.85)'; vx.lineWidth=2.4; vx.lineCap='round';
+    vx.beginPath(); vx.moveTo(x1,y1); vx.lineTo(x2,y2); vx.stroke();
+  }
+  requestAnimationFrame(drawViz);
+}
+drawViz();
+
+/* ---------------- state + log ---------------- */
+function setState(s, label){
+  reactor.parentElement.classList.remove('listening','speaking'); vState = s;
+  if(s==='listening'){ reactor.parentElement.classList.add('listening'); $('#modeState').textContent='LISTENING'; }
+  else if(s==='speaking'){ reactor.parentElement.classList.add('speaking'); $('#modeState').textContent='SPEAKING'; }
+  else { $('#modeState').textContent = s==='processing' ? 'PROCESSING' : 'STANDBY'; }
+  statusEl.textContent = label || s.toUpperCase();
+}
+function addMsg(text, who){
+  const d=document.createElement('div');
+  d.className='msg '+(who==='user'?'u':'j');
+  d.textContent=(who==='user'?'':NAME+' · ')+text;
+  logEl.appendChild(d); logEl.scrollTop=logEl.scrollHeight;
+  while(logEl.children.length>30) logEl.removeChild(logEl.firstChild);
+}
+
+/* ---------------- speech ---------------- */
+let voice=null;
+function pickVoice(){
+  const vs=speechSynthesis.getVoices();
+  voice = vs.find(v=>/uk english male|daniel|arthur|george/i.test(v.name))
+       || vs.find(v=>v.lang==='en-GB') || vs.find(v=>/male/i.test(v.name))
+       || vs.find(v=>v.lang && v.lang.startsWith('en')) || vs[0];
+}
+if('speechSynthesis' in window){ speechSynthesis.onvoiceschanged=pickVoice; pickVoice(); }
+function say(text){
+  return new Promise(res=>{
+    if(!('speechSynthesis' in window)) return res();
+    try{ const u=new SpeechSynthesisUtterance(text);
+      if(voice) u.voice=voice; u.rate=1.02; u.pitch=.9;
+      u.onend=res; u.onerror=res; speechSynthesis.speak(u);
+    }catch(_){ res(); }
+  });
+}
+
+/* ================= JARVIS COMMAND ENGINE (in-browser) ================= */
+const store = {
+  get(k,d){ try{ return JSON.parse(localStorage.getItem(k)) ?? d; }catch(_){ return d; } },
+  set(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(_){} }
+};
+const JOKES = [
+  "Why do programmers prefer dark mode? Because light attracts bugs.",
+  "I told my computer I needed a break, and it said: no problem, I'll go to sleep.",
+  "Why did the developer go broke? Because he used up all his cache.",
+  "There are 10 kinds of people: those who understand binary and those who don't.",
+  "A SQL query walks into a bar, walks up to two tables and asks: may I join you?"
+];
+function extractNumber(text, def){
+  for(const t of String(text).replace(/:/g,' ').split(/\s+/)) if(/^\d+$/.test(t)) return parseInt(t,10);
+  return def;
+}
+function safeMath(expr){
+  const words = {'plus':'+','add':'+','minus':'-','subtract':'-','times':'*',
+    'multiplied by':'*','into':'*','divided by':'/','over':'/','power':'**','mod':'%'};
+  let e = String(expr).toLowerCase();
+  for(const w in words) e = e.split(w).join(words[w]);
+  e = e.replace(/[^0-9+\-*/%.() ]/g,'').trim();
+  if(!e || !/\d/.test(e)) return null;
+  try{ const v = Function('"use strict";return ('+e+')')(); return (typeof v==='number' && isFinite(v))? v : null; }
+  catch(_){ return null; }
+}
+function greetPart(){ const h=new Date().getHours(); return h<12?'Morning':h<18?'Afternoon':'Evening'; }
+
+// Speak an array of lines in sequence, animating the reactor.
+let busy=false;
+async function respond(lines){
+  for(const line of lines){
+    addMsg(line,'jarvis');
+    setState('speaking', line.length>60 ? 'SPEAKING' : line.toUpperCase().slice(0,26));
+    await say(line);
+  }
+}
+function scheduleAnnounce(text, ms){
+  setTimeout(async()=>{ addMsg(text,'jarvis'); if(!busy) say(text); }, ms);
+}
+
+async function processCommand(query){
+  let q = (query||'').trim().toLowerCase();
+  for(const w of ['hey jarvis','okay jarvis','jarvis']) if(q.startsWith(w)){ q=q.slice(w.length).trim(); break; }
+  if(!q) return [];
+  const has = s => q.includes(s);
+  const tok = q.split(/\s+/);
+
+  if(['exit','quit','goodbye','good bye'].some(w=>has(w)))
+    return [`Very good, ${TITLE}. Going to standby. Call me when you need me.`];
+  if(['help','what can you do','commands'].includes(q)) return [
+    `Here are some things you can ask me, ${TITLE}:`,
+    "Info: time, date, weather in a city, define a word, my telemetry.",
+    "Productivity: todo add, todo list, remind me, set a timer or an alarm, take a note.",
+    "Fun & math: calculate, flip a coin, roll a dice, random number, generate a password, joke.",
+    "Utilities: copy to clipboard, open a website. Or just ask me anything."
+  ];
+  if((tok.includes('time')||has('what time')||has('the time')) && !has('timer'))
+    return [`${TITLE}, the time is ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`];
+  if(tok.includes('date')||has('day is it')||q==='today')
+    return [`Today is ${new Date().toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric',year:'numeric'})}`];
+
+  if(['briefing','brief me','good morning','morning briefing','daily briefing'].includes(q)){
+    const out=[`Good ${greetPart().toLowerCase()}, ${TITLE}. Here is your briefing.`,
+      `It is ${new Date().toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})}, ${new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}.`];
+    const pend=store.get('todos',[]).filter(t=>!t.done);
+    if(pend.length) out.push(`You have ${pend.length} pending task${pend.length>1?'s':''}. The first is: ${pend[0].task}.`);
+    else out.push("Your task list is clear.");
+    out.push("That's your briefing. Have a productive day.");
+    return out;
+  }
+
+  if(q.startsWith('open ')){
+    let t=q.slice(5).trim();
+    const url = /^https?:\/\//.test(t) ? t : (t.includes('.')&&!t.includes(' ') ? 'https://'+t
+      : 'https://www.google.com/search?q='+encodeURIComponent(t));
+    try{ window.open(url,'_blank'); }catch(_){}
+    return [`Opening ${t}.`];
+  }
+
+  // to-do
+  if(q.startsWith('todo add')||q.startsWith('add task')||q.startsWith('add to do')){
+    const item=q.replace('todo add','').replace('add task','').replace('add to do','').trim();
+    if(!item) return ["What task should I add?"];
+    const todos=store.get('todos',[]); todos.push({task:item,done:false}); store.set('todos',todos);
+    return [`Added to your to-do list: ${item}`];
+  }
+  if(has('todo list')||has('to do list')||has('my tasks')||has('show tasks')){
+    const pend=store.get('todos',[]).filter(t=>!t.done);
+    if(!pend.length) return ["Your to-do list is empty."];
+    return [`You have ${pend.length} pending task${pend.length>1?'s':''}:`,...pend.map((t,i)=>`${i+1}. ${t.task}`)];
+  }
+  if(q.startsWith('complete task')||q.startsWith('done task')||q.startsWith('finish task')){
+    const idx=extractNumber(q,1), todos=store.get('todos',[]), pend=todos.filter(t=>!t.done);
+    if(idx>=1 && idx<=pend.length){ pend[idx-1].done=true; store.set('todos',todos); return [`Marked '${pend[idx-1].task}' as done.`]; }
+    return ["That task number doesn't exist."];
+  }
+  if(q.startsWith('take a note')||q.startsWith('note ')||q.startsWith('remember ')){
+    const text=q.replace('take a note','').replace(/^note /,'').replace(/^remember /,'').trim();
+    if(!text) return ["What should I note down?"];
+    const notes=store.get('notes',[]); notes.push({t:new Date().toLocaleString(),text}); store.set('notes',notes);
+    return ["Note added."];
+  }
+
+  // reminders / timers / alarms
+  if(q.startsWith('remind me')){
+    let body = q.includes('to') ? q.split('to').slice(1).join('to') : q, mins=5, text=body;
+    if(body.includes(' in ')){ const p=body.split(' in '); text=p.slice(0,-1).join(' in '); mins=extractNumber(p[p.length-1],5); }
+    text=text.trim();
+    scheduleAnnounce(`Reminder, ${TITLE}: ${text}`, mins*60000);
+    return [`I'll remind you to ${text} in ${mins} minute${mins!==1?'s':''}.`];
+  }
+  if(has('set timer')||has('start timer')){
+    let secs=extractNumber(q,60); if(has('minute')) secs*=60;
+    scheduleAnnounce(`${TITLE}, your ${secs} second timer is up.`, secs*1000);
+    return [`Timer set for ${secs} seconds.`];
+  }
+  if(has('alarm')){
+    const when=(q.split('for')[1]||'').trim();
+    const m=when.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/);
+    if(!m) return ["Try something like: set an alarm for 7:30 am."];
+    let h=parseInt(m[1],10), min=m[2]?parseInt(m[2],10):0, ap=m[3];
+    if(ap==='pm'&&h<12) h+=12; if(ap==='am'&&h===12) h=0;
+    const now=new Date(), tgt=new Date(); tgt.setHours(h,min,0,0);
+    if(tgt<=now) tgt.setDate(tgt.getDate()+1);
+    scheduleAnnounce(`${TITLE}, this is your alarm.`, tgt-now);
+    return [`Alarm set for ${tgt.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}.`];
+  }
+
+  // math
+  if(q.startsWith('calculate')||q.startsWith("what's")||q.startsWith('what is')||
+     (['plus','minus','times','divided by','multiplied'].some(o=>has(o)) && /\d/.test(q))){
+    const r=safeMath(q.replace('calculate','').replace("what's",'').replace('what is','').trim()||q);
+    return r!==null ? [`The answer is ${r}`] : ["I couldn't calculate that. Try: calculate 15 times 12."];
+  }
+
+  // fun / utils
+  if(has('flip a coin')||has('flip coin')||has('toss a coin')) return [Math.random()<.5?'Heads':'Tails'];
+  if(has('roll a dice')||has('roll dice')||has('roll a die')) return [`You rolled a ${1+Math.floor(Math.random()*6)}`];
+  if(has('random number')) return [`Your random number is ${1+Math.floor(Math.random()*100)}`];
+  if(has('generate')&&has('password')){
+    const n=extractNumber(q,16), chars="ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
+    let p=''; for(let i=0;i<n;i++) p+=chars[Math.floor(Math.random()*chars.length)];
+    addMsg('🔑 '+p,'jarvis');
+    return [`I've generated a ${n} character password for you. It's shown above — copy it somewhere safe.`];
+  }
+  if(has('joke')) return [JOKES[Math.floor(Math.random()*JOKES.length)]];
+
+  if(has('telemetry')||has('system stat')||has('system info')||has('cpu')||has('battery')){
+    const out=[];
+    if(navigator.deviceMemory) out.push(`This device reports about ${navigator.deviceMemory} gigabytes of memory`);
+    if(navigator.hardwareConcurrency) out.push(`and ${navigator.hardwareConcurrency} logical processor cores`);
+    try{ if(navigator.getBattery){ const b=await navigator.getBattery();
+      out.push(`Battery is at ${Math.round(b.level*100)} percent and ${b.charging?'charging':'discharging'}`);} }catch(_){}
+    return out.length? out : ["All core systems are nominal, "+TITLE+"."];
+  }
+
+  // clipboard
+  if(q.startsWith('copy ')&&has('clipboard')){
+    const text=q.slice(5).replace('to the clipboard','').replace('to clipboard','').trim();
+    try{ await navigator.clipboard.writeText(text); return ["Copied to your clipboard."]; }
+    catch(_){ return ["I couldn't access the clipboard in this browser."]; }
+  }
+
+  // things that need the internet / an API key (full desktop edition)
+  if(has('weather')) return ["Live weather needs the full desktop edition of me, which connects to a weather service with your API key."];
+  if(q.startsWith('define ')||has('definition of')) return ["Dictionary look-ups run in the full desktop edition, which reaches the dictionary service online."];
+  if(has('news')||has('headlines')) return ["Live news runs in the full desktop edition connected to a news feed."];
+  if(has('convert')&&has('to')) return ["Currency conversion runs in the full desktop edition, which fetches live rates."];
+  if(q.startsWith('translate')) return ["Translation runs in the full desktop edition, powered by the AI model."];
+  if(q.startsWith('play ')) { const s=q.slice(5).replace('on youtube','').replace('on spotify','').trim();
+    try{ window.open('https://www.youtube.com/results?search_query='+encodeURIComponent(s),'_blank'); }catch(_){}
+    return [`Here are results for ${s}.`]; }
+
+  // fallback
+  return [`I can't answer that one in this browser demo, ${TITLE}. The full desktop edition adds an AI brain that can. Say "help" to hear what I can do right here.`];
+}
+
+/* ---------------- send pipeline ---------------- */
+async function send(query){
+  query=(query||'').trim(); if(!query||busy) return;
+  busy=true; addMsg(query,'user'); $('#input').value=''; setState('processing','PROCESSING');
+  try{ const lines = await processCommand(query); await respond(lines); }
+  catch(e){ addMsg('A subsystem faulted, but I recovered.','jarvis'); }
+  setState('idle','STANDBY'); busy=false; $('#input').focus();
+}
+
+/* ---------------- voice input ---------------- */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec=null, recognizing=false;
+if(SR){
+  rec=new SR(); rec.lang='en-US'; rec.interimResults=false; rec.maxAlternatives=1;
+  rec.onstart=()=>{recognizing=true; $('#mic').classList.add('rec'); setState('listening','LISTENING');};
+  rec.onend=()=>{recognizing=false; $('#mic').classList.remove('rec'); if(!busy) setState('idle','STANDBY');};
+  rec.onerror=(e)=>{recognizing=false; $('#mic').classList.remove('rec');
+    if(e && e.error==='not-allowed') addMsg('Microphone access was blocked. You can still type to me.','jarvis');};
+  rec.onresult=e=>{ send(e.results[0][0].transcript); };
+}
+$('#mic').onclick=()=>{
+  if(!SR){ addMsg('Voice input needs Chrome or Edge. You can still type to me.','jarvis'); return; }
+  if(recognizing){ rec.stop(); } else { try{ speechSynthesis.cancel(); rec.start(); }catch(_){ } }
+};
+$('#send').onclick=()=>send($('#input').value);
+$('#input').addEventListener('keydown',e=>{ if(e.key==='Enter') send($('#input').value); });
+
+/* ---------------- clock + telemetry + caps ---------------- */
+function tick(){
+  const now=new Date();
+  $('#clock').textContent=now.toLocaleTimeString();
+  $('#dateline').textContent=now.toLocaleDateString(undefined,{weekday:'long',month:'short',day:'numeric'});
+  $('#tCore').textContent=(96+Math.random()*3.5).toFixed(1)+'%';
+}
+setInterval(tick,1000); tick();
+(function caps(){
+  const labels={Voice:'speechSynthesis' in window, Mic:!!SR, Clock:true, Tasks:true,
+    Math:true, Clipboard:!!(navigator.clipboard), Telemetry:!!navigator.hardwareConcurrency, Timers:true};
+  const box=$('#caps');
+  for(const k in labels){ const s=document.createElement('span');
+    s.className='cap '+(labels[k]?'on':'off'); s.textContent=k; box.appendChild(s); }
+})();
+
+/* ---------------- boot ---------------- */
+setTimeout(()=>{ setState('idle','STANDBY'); $('#input').focus();
+  addMsg(`Good ${greetPart().toLowerCase()}, ${TITLE}. I am ${NAME}, online and at your service. Say "help" or press the mic.`,'jarvis');
+}, 1200);
+</script>
