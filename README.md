@@ -14,7 +14,7 @@ instead of crashing.
 
 | Category | Commands |
 |----------|----------|
-| **Conversation** | Ask anything — powered by Google Gemini, with memory of the chat |
+| **Conversation** | Ask anything — powered by **Groq** (fast) or Google Gemini, with memory of the chat |
 | **Apps & Web** | `open youtube`, `open notepad`, `open github.com` |
 | **Info** | `what time is it`, `date`, `weather in London`, `news`, `define serendipity`, `wikipedia python` |
 | **Productivity** | `todo add buy milk`, `todo list`, `complete task 1`, `remind me to call mom in 30 minutes`, `set timer for 60 seconds`, `set an alarm for 7:30 am`, `take a note ...` |
@@ -88,7 +88,9 @@ active based on your installed libraries and API keys.
 All secrets live in a `.env` file (never commit it — it's git-ignored). Copy
 `.env.example` to `.env` and fill in whatever you have:
 
-- `GEMINI_API_KEY` — [Google AI Studio](https://aistudio.google.com/app/apikey) — enables the conversational "brain".
+- **AI brain** — JARVIS can think with **Groq** or **Gemini**. Set `AI_PROVIDER` to `groq`, `gemini`, or `auto` (default — prefers Groq for speed, falls back to Gemini):
+  - `GROQ_API_KEY` — [Groq Console](https://console.groq.com/keys) — very fast; needs no extra Python package. Model via `GROQ_MODEL` (default `llama-3.3-70b-versatile`).
+  - `GEMINI_API_KEY` — [Google AI Studio](https://aistudio.google.com/app/apikey) — needs `google-generativeai`. Model via `GEMINI_MODEL`.
 - `OPENWEATHER_API_KEY` — [OpenWeatherMap](https://openweathermap.org/api) — enables `weather`.
 - `GNEWS_API_KEY` — [GNews](https://gnews.io) — real headlines for `news` (otherwise Gemini is used).
 - `WOLFRAM_APP_ID` — [WolframAlpha](https://developer.wolframalpha.com) — advanced math.

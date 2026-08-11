@@ -198,6 +198,11 @@ def env(key, default=""):
 # ---- Secrets / API keys (all optional, read from environment / .env) ----
 GEMINI_API_KEY = env("GEMINI_API_KEY")
 GEMINI_MODEL = env("GEMINI_MODEL", "gemini-1.5-flash")
+# Groq (fast open-model inference via an OpenAI-compatible API). No SDK needed.
+GROQ_API_KEY = env("GROQ_API_KEY")
+GROQ_MODEL = env("GROQ_MODEL", "llama-3.3-70b-versatile")
+# Which brain to use when both are set: "groq", "gemini", or "auto" (Groq first).
+AI_PROVIDER = env("AI_PROVIDER", "auto").lower()
 WEATHER_API_KEY = env("OPENWEATHER_API_KEY")
 WOLFRAM_APP_ID = env("WOLFRAM_APP_ID")
 EMAIL_SENDER = env("EMAIL_SENDER")
@@ -275,7 +280,77 @@ def speak(text):
             print(f"(speech error: {e})")
 
 
-# ================= GEMINI (lazy, with memory) =================
+# ================= AI BRAIN (multi-provider, lazy, with memory) =================
+# Two interchangeable backends: Groq (fast open models via an OpenAI-compatible
+# REST API — needs only `requests`) and Google Gemini. Both keep conversation
+# memory. ask_ai() picks a provider from what's configured + AI_PROVIDER.
+
+def _system_prompt():
+    return (
+        f"You are {ASSISTANT_NAME}, a concise, helpful voice assistant "
+        f"inspired by Iron Man's AI. Address the user as '{USER_TITLE}'. "
+        "Keep answers short and speakable unless asked for detail."
+    )
+
+
+def has_groq():
+    return bool(GROQ_API_KEY) and requests is not None
+
+
+def has_gemini():
+    return HAS_GEMINI and bool(GEMINI_API_KEY)
+
+
+def active_ai_provider():
+    """Resolve which brain to use given config + AI_PROVIDER preference."""
+    if AI_PROVIDER == "groq":
+        return "groq" if has_groq() else None
+    if AI_PROVIDER == "gemini":
+        return "gemini" if has_gemini() else None
+    # auto: prefer Groq (faster), fall back to Gemini
+    if has_groq():
+        return "groq"
+    if has_gemini():
+        return "gemini"
+    return None
+
+
+# ---- Groq ----
+_groq_history = []  # OpenAI-style [{"role","content"}, ...]
+
+
+def _ask_groq(prompt):
+    _groq_history.append({"role": "user", "content": prompt})
+    try:
+        resp = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {GROQ_API_KEY}",
+                     "Content-Type": "application/json"},
+            json={
+                "model": GROQ_MODEL,
+                "messages": [{"role": "system", "content": _system_prompt()}]
+                            + _groq_history[-12:],  # keep recent context
+                "temperature": 0.6,
+                "max_tokens": 600,
+            },
+            timeout=30,
+        )
+        data = resp.json()
+        if resp.status_code != 200:
+            _groq_history.pop()  # drop the failed turn
+            print(f"Groq error {resp.status_code}: {data}")
+            return None
+        text = data["choices"][0]["message"]["content"].strip()
+        _groq_history.append({"role": "assistant", "content": text})
+        return text
+    except Exception as e:
+        if _groq_history:
+            _groq_history.pop()
+        print(f"Groq error: {e}")
+        return None
+
+
+# ---- Gemini ----
 _gemini_model = None
 _chat_session = None
 
@@ -283,19 +358,14 @@ _chat_session = None
 def _get_chat():
     """Return a Gemini chat session that keeps conversation history, or None."""
     global _gemini_model, _chat_session
-    if not HAS_GEMINI or not GEMINI_API_KEY:
+    if not has_gemini():
         return None
     if _chat_session is None:
         try:
             genai.configure(api_key=GEMINI_API_KEY)
-            system = (
-                f"You are {ASSISTANT_NAME}, a concise, helpful voice assistant "
-                f"inspired by Iron Man's AI. Address the user as '{USER_TITLE}'. "
-                "Keep answers short and speakable unless asked for detail."
-            )
             try:
                 _gemini_model = genai.GenerativeModel(
-                    GEMINI_MODEL, system_instruction=system
+                    GEMINI_MODEL, system_instruction=_system_prompt()
                 )
             except TypeError:
                 # Older SDKs don't support system_instruction.
@@ -307,8 +377,7 @@ def _get_chat():
     return _chat_session
 
 
-def ask_ai(prompt):
-    """Ask Gemini, remembering conversation context. Returns text or None."""
+def _ask_gemini(prompt):
     chat = _get_chat()
     if chat is None:
         return None
@@ -318,6 +387,16 @@ def ask_ai(prompt):
     except Exception as e:
         print(f"Gemini error: {e}")
         return None
+
+
+def ask_ai(prompt):
+    """Ask the active AI brain, remembering context. Returns text or None."""
+    provider = active_ai_provider()
+    if provider == "groq":
+        return _ask_groq(prompt)
+    if provider == "gemini":
+        return _ask_gemini(prompt)
+    return None
 
 
 # ================= INPUT (voice or text) =================
@@ -1025,7 +1104,7 @@ def translate(text, target_language):
     if answer:
         speak(answer)
     else:
-        speak("Translation needs the Gemini AI brain configured in your .env.")
+        speak("Translation needs an AI brain (Groq or Gemini) configured in your .env.")
 
 
 def clipboard_copy(text):
@@ -1334,9 +1413,12 @@ def handle(query, listener):
     answer = ask_ai(query)
     if answer:
         speak(answer)
-    else:
+    elif active_ai_provider() is None:
         speak("I'm not sure how to help with that, and my AI brain isn't configured. "
-              "Say 'help' to hear what I can do.")
+              "Add a Groq or Gemini key to your .env. Say 'help' to hear what I can do.")
+    else:
+        speak("I couldn't reach my AI brain just now — please check your connection. "
+              "Say 'help' to hear what I can do offline.")
     return True
 
 
@@ -1425,10 +1507,13 @@ def start_gui():
 
 
 def print_capabilities():
+    provider = active_ai_provider()
+    brain = {"groq": f"AI brain: Groq ({GROQ_MODEL})",
+             "gemini": f"AI brain: Gemini ({GEMINI_MODEL})"}.get(provider, "AI brain")
     caps = {
         "Speech recognition (mic input)": HAS_SR,
         "Text-to-speech (voice output)": HAS_TTS,
-        "Gemini AI brain": HAS_GEMINI and bool(GEMINI_API_KEY),
+        brain: provider is not None,
         "Wikipedia": HAS_WIKI,
         "System stats (psutil)": HAS_PSUTIL,
         "Screenshots/volume (pyautogui)": HAS_PYAUTOGUI,
@@ -1735,7 +1820,8 @@ def _web_capabilities():
         "user_title": USER_TITLE,
         "speech_recognition": HAS_SR,
         "text_to_speech": HAS_TTS,
-        "gemini": HAS_GEMINI and bool(GEMINI_API_KEY),
+        "gemini": active_ai_provider() is not None,
+        "ai_provider": active_ai_provider() or "none",
         "wikipedia": HAS_WIKI,
         "psutil": HAS_PSUTIL,
         "weather": bool(WEATHER_API_KEY),

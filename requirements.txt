@@ -1,7 +1,10 @@
 # ---- Core (recommended) ----
 python-dotenv          # load API keys from a .env file
-requests               # weather, news, dictionary, currency, IP lookups
-google-generativeai    # Gemini AI "brain" (conversation + fallback answers)
+requests               # weather, news, dictionary, currency, IP — AND the Groq AI brain
+
+# ---- AI brain (pick either or both; set keys in .env) ----
+# Groq needs NO extra package — it works through `requests` above. Just set GROQ_API_KEY.
+google-generativeai    # only needed for the Gemini brain (Groq needs nothing extra)
 
 # ---- Voice (optional: needed for microphone + spoken replies) ----
 SpeechRecognition      # microphone input
